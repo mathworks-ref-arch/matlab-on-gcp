@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Copyright 2024 The MathWorks, Inc.
+
+STARTUP_FOLDER=/opt/mathworks/startup
+# Load startup variables
+if [[ -r $${STARTUP_FOLDER}/.env ]]; then
+    set -o allexport
+    source $${STARTUP_FOLDER}/.env
+    set +o allexport
+fi
+
+# Define startup parameters
+export MLM_LICENSE_FILE=${license_manager}
+export OPTIONAL_USER_COMMAND='${optional_user_command}'
+
+# Run startup scripts
+mkdir -p /var/log/mathworks
+run-parts --exit-on-error --verbose --regex '^[0-9]+_.+$' $${STARTUP_FOLDER} >> /var/log/mathworks/startup.log 2>&1

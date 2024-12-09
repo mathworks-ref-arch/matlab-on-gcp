@@ -1,0 +1,9 @@
+# Local terraform generated files
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfout
+*.lock.hcl
+*.exe
+packer/v1/manifest*
