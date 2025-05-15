@@ -1,6 +1,6 @@
 # **MATLAB on Google Cloud Platform**
 
-This repository shows how to build a Google® Machine Image with MATLAB® and MATLAB toolboxes installed.
+This repository shows how to build a Google® machine image for Linux® with MATLAB® and MATLAB toolboxes installed.
 
 A HashiCorp® Packer template generates the machine image. The template is an HCL2 file that tells Packer which plugins (builders, provisioners, post-processors) to use, how to configure those plugins, and what order to run them in. For more information, see [Packer Templates](https://www.packer.io/docs/templates#packer-templates).
 
@@ -21,10 +21,12 @@ A HashiCorp® Packer template generates the machine image. The template is an HC
 
 ## **Requirements**
 
+* A MATLAB license. For details, see [License Requirements for MATLAB on Cloud Platforms](https://www.mathworks.com/help/install/license/licensing-for-mathworks-products-running-on-the-cloud.html).
+* [Google Cloud CLI](https://cloud.google.com/sdk/docs/install). To log in, use: `gcloud auth application-default login`
 * [Google Cloud CLI](https://cloud.google.com/sdk/docs/install). To log in, use: `gcloud auth application-default login`
 * [Google Cloud "Project ID"](https://cloud.google.com/resource-manager/docs/creating-managing-projects#before_you_begin). To retrieve your Project ID, use: `gcloud config get-value project`
-* A valid Packer installation, later than 1.7.0. See [Install Packer](https://www.packer.io/downloads).
-* A valid Terraform installation, later than v1.6.6. See [Install Terraform](https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/install-cli).
+* [Packer 1.7.0. or later](https://www.packer.io/downloads).
+* [Terraform 1.6.6 or later](https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/install-cli).
 
 ## **Costs**
 You are responsible for the cost of the GCP services used when you create cloud resources using this guide. Resource settings, such as virtual machine type, affect the cost of deployment. For cost estimates, see the pricing pages for each GCP service you will be using. Prices are subject to change.
@@ -269,6 +271,6 @@ To request assistance, or additional features, contact [MathWorks Technical Supp
 
 ----
 
-Copyright 2024 The MathWorks, Inc.
+Copyright 2024-2025 The MathWorks, Inc.
 
 ----

@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 #
-# Copyright 2024 The MathWorks, Inc.
+# Copyright 2024-2025 The MathWorks, Inc.
 
 # Print commands for logging purposes.
 set -x
+
+MLM_DEF_FILE=/etc/profile.d/mlm_def.sh
 
 if [[ -n ${MLM_LICENSE_FILE} ]]; then
     echo "License MATLAB using Network License Manager"

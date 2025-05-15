@@ -38,13 +38,13 @@ variable "OWNER" {
 
 variable "PRODUCTS" {
   type        = string
-  default     = "5G_Toolbox AUTOSAR_Blockset Aerospace_Blockset Aerospace_Toolbox Antenna_Toolbox Audio_Toolbox Automated_Driving_Toolbox Bioinformatics_Toolbox Bluetooth_Toolbox C2000_Microcontroller_Blockset Communications_Toolbox Computer_Vision_Toolbox Control_System_Toolbox Curve_Fitting_Toolbox DDS_Blockset DSP_HDL_Toolbox DSP_System_Toolbox Database_Toolbox Datafeed_Toolbox Deep_Learning_HDL_Toolbox Deep_Learning_Toolbox Econometrics_Toolbox Embedded_Coder Filter_Design_HDL_Coder Financial_Instruments_Toolbox Financial_Toolbox Fixed-Point_Designer Fuzzy_Logic_Toolbox GPU_Coder Global_Optimization_Toolbox HDL_Coder HDL_Verifier Image_Acquisition_Toolbox Image_Processing_Toolbox Industrial_Communication_Toolbox Instrument_Control_Toolbox LTE_Toolbox Lidar_Toolbox MATLAB MATLAB_Coder MATLAB_Compiler MATLAB_Compiler_SDK MATLAB_Production_Server MATLAB_Report_Generator MATLAB_Test MATLAB_Web_App_Server Mapping_Toolbox Medical_Imaging_Toolbox Mixed-Signal_Blockset Model_Predictive_Control_Toolbox Motor_Control_Blockset Navigation_Toolbox Optimization_Toolbox Parallel_Computing_Toolbox Partial_Differential_Equation_Toolbox Phased_Array_System_Toolbox Powertrain_Blockset Predictive_Maintenance_Toolbox RF_Blockset RF_PCB_Toolbox RF_Toolbox ROS_Toolbox Radar_Toolbox Reinforcement_Learning_Toolbox Requirements_Toolbox Risk_Management_Toolbox Robotics_System_Toolbox Robust_Control_Toolbox Satellite_Communications_Toolbox Sensor_Fusion_and_Tracking_Toolbox SerDes_Toolbox Signal_Integrity_Toolbox Signal_Processing_Toolbox SimBiology SimEvents Simscape Simscape_Battery Simscape_Driveline Simscape_Electrical Simscape_Fluids Simscape_Multibody Simulink Simulink_3D_Animation Simulink_Check Simulink_Coder Simulink_Compiler Simulink_Control_Design Simulink_Coverage Simulink_Design_Optimization Simulink_Design_Verifier Simulink_Desktop_Real-Time Simulink_Fault_Analyzer Simulink_PLC_Coder Simulink_Real-Time Simulink_Report_Generator Simulink_Test SoC_Blockset Stateflow Statistics_and_Machine_Learning_Toolbox Symbolic_Math_Toolbox System_Composer System_Identification_Toolbox Text_Analytics_Toolbox UAV_Toolbox Vehicle_Dynamics_Blockset Vehicle_Network_Toolbox Vision_HDL_Toolbox WLAN_Toolbox Wavelet_Toolbox Wireless_HDL_Toolbox Wireless_Testbench"
+  default     = "5G_Toolbox AUTOSAR_Blockset Aerospace_Blockset Aerospace_Toolbox Antenna_Toolbox Audio_Toolbox Automated_Driving_Toolbox Bioinformatics_Toolbox Bluetooth_Toolbox C2000_Microcontroller_Blockset Communications_Toolbox Computer_Vision_Toolbox Control_System_Toolbox Curve_Fitting_Toolbox DDS_Blockset DSP_HDL_Toolbox DSP_System_Toolbox Database_Toolbox Datafeed_Toolbox Deep_Learning_HDL_Toolbox Deep_Learning_Toolbox Econometrics_Toolbox Embedded_Coder Financial_Instruments_Toolbox Financial_Toolbox Fixed-Point_Designer Fuzzy_Logic_Toolbox GPU_Coder Global_Optimization_Toolbox HDL_Coder HDL_Verifier Image_Acquisition_Toolbox Image_Processing_Toolbox Industrial_Communication_Toolbox Instrument_Control_Toolbox LTE_Toolbox Lidar_Toolbox MATLAB MATLAB_Coder MATLAB_Compiler MATLAB_Compiler_SDK MATLAB_Report_Generator MATLAB_Test Mapping_Toolbox Medical_Imaging_Toolbox Mixed-Signal_Blockset Model_Predictive_Control_Toolbox Motor_Control_Blockset Navigation_Toolbox Optimization_Toolbox Parallel_Computing_Toolbox Partial_Differential_Equation_Toolbox Phased_Array_System_Toolbox Powertrain_Blockset Predictive_Maintenance_Toolbox RF_Blockset RF_PCB_Toolbox RF_Toolbox ROS_Toolbox Radar_Toolbox Reinforcement_Learning_Toolbox Requirements_Toolbox Risk_Management_Toolbox Robotics_System_Toolbox Robust_Control_Toolbox Satellite_Communications_Toolbox Sensor_Fusion_and_Tracking_Toolbox SerDes_Toolbox Signal_Integrity_Toolbox Signal_Processing_Toolbox SimBiology SimEvents Simscape Simscape_Battery Simscape_Driveline Simscape_Electrical Simscape_Fluids Simscape_Multibody Simulink Simulink_3D_Animation Simulink_Check Simulink_Coder Simulink_Compiler Simulink_Control_Design Simulink_Coverage Simulink_Design_Optimization Simulink_Design_Verifier Simulink_Desktop_Real-Time Simulink_Fault_Analyzer Simulink_PLC_Coder Simulink_Real-Time Simulink_Report_Generator Simulink_Test SoC_Blockset Stateflow Statistics_and_Machine_Learning_Toolbox Symbolic_Math_Toolbox System_Composer System_Identification_Toolbox Text_Analytics_Toolbox UAV_Toolbox Vehicle_Dynamics_Blockset Vehicle_Network_Toolbox Vision_HDL_Toolbox WLAN_Toolbox Wavelet_Toolbox Wireless_HDL_Toolbox Wireless_Testbench"
   description = "Target products to install in the machine image, e.g. MATLAB SIMULINK."
 }
 
 variable "RELEASE" {
   type        = string
-  default     = "R2024b"
+  default     = "R2025a"
   description = "Target MATLAB release to install in the machine image. Must start with \"R\"."
 
   validation {
@@ -73,13 +73,28 @@ variable "BASE_IMAGE_FAMILY" {
 
 variable "BUILD_SCRIPTS" {
   type        = list(string)
-  default     = ["install-startup-scripts.sh", "install-dependencies.sh", "install-ubuntu-desktop.sh", "install-mate.sh", "install-matlab-dependencies-ubuntu.sh", "install-matlab.sh", "setup-startup-accelerator.sh", "generate-toolbox-cache.sh", "cleanup.sh"]
+  default     = [
+    "install-startup-scripts.sh",
+    "install-dependencies.sh",
+    "install-ubuntu-desktop.sh",
+    "install-mate.sh",
+    "install-matlab-dependencies-ubuntu.sh",
+    "install-matlab.sh",
+    "setup-startup-accelerator.sh",
+    "generate-toolbox-cache.sh",
+    "cleanup.sh"]
   description = "The list of installation scripts Packer uses to build the image."
 }
 
 variable "STARTUP_SCRIPTS" {
   type        = list(string)
-  default     = [".env", "01_run-optional-user-command.sh", "10_setup-machine.sh", "20_setup-rdp.sh", "30_setup-matlab.sh", "40_warmup-matlab.sh"]
+  default     = [
+    ".env",
+    "01_run-optional-user-command.sh",
+    "10_setup-machine.sh",
+    "20_setup-rdp.sh",
+    "30_setup-matlab.sh",
+    "40_warmup-matlab.sh"]
   description = "The list of startup scripts Packer copies to the remote machine image builder, which can be used during the CloudFormation Stack creation."
 }
 
@@ -131,6 +146,13 @@ variable "MATLAB_SOURCE_URL" {
   default     = ""
   description = "Optional URL from which to download a MATLAB and toolbox source file, for use with the mpm --source option"
 }
+
+variable "DEPS_LIST" {
+  type    = string
+  default = ""
+  description = "Optional URL of latest matlab dependencies to install. See here https://github.com/mathworks-ref-arch/container-images/tree/main/matlab-deps"
+}
+
 
 # Set up local variables used by provisioners.
 locals {
@@ -211,6 +233,7 @@ build {
       "NVIDIA_DRIVER_VERSION=${var.NVIDIA_DRIVER_VERSION}",
       "NVIDIA_CUDA_TOOLKIT=${var.NVIDIA_CUDA_TOOLKIT}",
       "MATLAB_SOURCE_URL=${var.MATLAB_SOURCE_URL}",
+      "DEPS_LIST=${var.DEPS_LIST}",
       "MATLAB_ROOT=/usr/local/matlab"
     ]
     expect_disconnect = true

@@ -44,6 +44,7 @@ release_arguments=""
 source_arguments=""
 if [ -n "${MATLAB_SOURCE_URL}" ]; then
     curl "${MATLAB_SOURCE_URL}" -o matlab.zip
+    echo "Download Completed. Unzipping MATLAB source archive..."
     unzip -q matlab.zip -d /tmp/matlab_source
     rm matlab.zip
     chmod -R 755 /tmp/matlab_source

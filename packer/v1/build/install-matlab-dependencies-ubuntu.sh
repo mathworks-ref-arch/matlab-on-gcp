@@ -10,7 +10,11 @@ sudo apt-get -qq update
 
 MATLAB_RELEASE_LOWER=$(echo "${RELEASE}" | awk '{print tolower($0)}')
 UBUNTU_VERSION=$(lsb_release -rs)
-DEPS_LIST="https://raw.githubusercontent.com/mathworks-ref-arch/container-images/main/matlab-deps/${MATLAB_RELEASE_LOWER}/ubuntu${UBUNTU_VERSION}/base-dependencies.txt"
+
+# Use environment variable if set, otherwise use the default URL
+DEPS_LIST=${DEPS_LIST:-"https://raw.githubusercontent.com/mathworks-ref-arch/container-images/main/matlab-deps/${MATLAB_RELEASE_LOWER}/ubuntu${UBUNTU_VERSION}/base-dependencies.txt"}
+# Print which DEPS_LIST URL is being used
+echo "Using dependencies list from: ${DEPS_LIST}"
 
 touch base-dependencies.txt
 wget -O base-dependencies.txt $DEPS_LIST || echo "Unable to find MATLAB ${RELEASE} dependencies file for Ubuntu ${UBUNTU_VERSION}."
