@@ -194,12 +194,21 @@ if __name__ == "__main__":
         f'<MathWorks type="Path Cache File" version="2.0" date="{date}">'
         f"{toolbox_cache}\n</MathWorks>"
     )
+    
+    # Ensure the destination directory exists
+    toolbox_destination.mkdir(parents=True, exist_ok=True)
+    
+    toolbox_cache_file_path = toolbox_destination / f"toolbox_cache-{platform_label}.xml"
+    
     with open(
-        toolbox_destination / f"toolbox_cache-{platform_label}.xml",
+        toolbox_cache_file_path,
         "w",
         encoding="utf-8",
     ) as f:
         f.write(toolbox_cache)
-    validate_toolbox_cache_xml(
-        toolbox_destination / f"toolbox_cache-{platform_label}.xml"
-    )
+    
+    # Validate only if file was successfully created
+    if toolbox_cache_file_path.exists():
+        validate_toolbox_cache_xml(toolbox_cache_file_path)
+    else:
+        raise Exception(f"Failed to create toolbox cache file at {toolbox_cache_file_path}")
