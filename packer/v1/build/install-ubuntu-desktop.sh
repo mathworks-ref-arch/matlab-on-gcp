@@ -1,183 +1,184 @@
 #!/usr/bin/env bash
 #
-# Copyright 2024 The MathWorks, Inc.
+# Copyright 2024-2026 The MathWorks, Inc.
 
 # Exit on any failure, treat unset substitution variables as errors
 set -euo pipefail
 
-# Function to check for dpkg lock
-wait_for_dpkg_lock() {
-    local wait_time=0
-    local max_wait=600   # Maximum wait time in seconds (e.g., 10 minutes)
-    local interval=10    # Interval to check the lock status
+echo "Installing XRDP and configuring for MATE..."
 
-    echo "Checking for dpkg lock..."
+# Configure non-interactive mode
+export DEBIAN_FRONTEND=noninteractive
 
-    while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
-        echo "Waiting for other software managers to finish..."
-        sleep $interval
-        wait_time=$((wait_time + interval))
+# Update package list and upgrade
+echo "Updating system packages..."
+sudo apt-get update -qq
+sudo apt-get upgrade -qq -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
 
-        if [ "$wait_time" -ge "$max_wait" ]; then
-            echo "Timed out waiting for dpkg lock."
-            return 1
-        fi
-    done
+######################################################
+# INSTALL XRDP
+######################################################
+echo "Installing xRDP..."
+sudo apt-get install -qq -y \
+  xrdp \
+  xorgxrdp \
+  whois \
+  dbus-x11
 
-    echo "dpkg lock is free."
-    return 0
-}
+######################################################
+# NVIDIA COMPATIBILITY FIXES
+#
+# When NVIDIA drivers are installed but no physical GPU
+# is present at runtime, two things break:
+#  1. NVIDIA changes the Xorg ABI, breaking pre-built
+#     xorgxrdp modules (undefined symbol errors).
+#  2. NVIDIA's libEGL/GLX libraries segfault Xorg
+#     when they try to access non-existent GPU hardware.
+#
+# Fix 2 & 3 are made UNCONDITIONAL because:
+#  - xrdp uses a software framebuffer; GLX is unused.
+#  - Mesa software rendering is correct for xrdp.
+#  - Both fixes are harmless on non-NVIDIA systems.
+######################################################
 
-echo 'debconf debconf/frontend select noninteractive' | sudo debconf-set-selections
-
-echo "Update Ubuntu repositories and upgrade to latest packages..."
-sudo apt-get -qq clean
-sudo mv /var/lib/apt/lists /var/lib/apt/lists.broke
-sudo mkdir -p /var/lib/apt/lists/partial
-
-# Clear locks: https://unix.stackexchange.com/questions/315502/how-to-disable-apt-daily-service-on-ubuntu-cloud-vm-image
-sudo systemctl stop apt-daily.service
-sudo systemctl kill --kill-who=all apt-daily.service
-
-# Wait until `apt-get updated` has been killed
-while ! (systemctl list-units --all apt-daily.service | grep -qE '(dead|failed)'); do
-  sleep 2;
-done
-
-# Wait until locks clear
-sleep 10
-
-# Make sure package list and packages are up to date
-sudo apt-get -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"  update
-sudo apt-get -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"  upgrade
-
-###################################################### CONFIGURE XRDP ######################################################
-# Enable xfce
-sudo rm -f /usr/bin/x-session-manager
-sudo ln -s /usr/bin/xfce4-session /usr/bin/x-session-manager
-
-# Install whois
-sudo apt-get -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"  install whois
-
-# Install/Configure xrdp
-# https://github.com/neutrinolabs/xrdp/wiki/Building-on-Debian-8
-sudo mv /var/lib/dpkg/info/install-info.postinst /var/lib/dpkg/info/install-info.postinst.bad
-
-UBUNTU_VERSION=$(lsb_release -rs | tr -d '.')
-
-# Wait for dpkg lock to be free before proceeding
-if ! wait_for_dpkg_lock; then
-    echo "Failed to acquire dpkg lock after waiting. However, still proceeding..."
-fi
-
-sudo apt-get -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"  install \
-  autoconf \
-  automake \
-  bison \
-  flex \
-  g++ \
-  gcc \
-  git \
-  intltool \
-  libfuse-dev \
-  libjpeg-dev \
-  libmp3lame-dev \
-  libpam0g-dev \
-  libpixman-1-dev \
-  libssl-dev \
-  libtool \
-  libx11-dev \
-  libxfixes-dev \
-  libxml2-dev \
-  libxrandr-dev \
-  make \
-  nasm \
-  pkg-config \
-  xserver-xorg-dev \
-  xsltproc \
-  xutils \
-  xutils-dev \
-  "$([[ $UBUNTU_VERSION -lt 2204 ]] && echo "python-libxml2" || echo "python3-libxml2")"
-
-
-# Wait for dpkg lock to be free before proceeding
-if ! wait_for_dpkg_lock; then
-    echo "Failed to acquire dpkg lock after waiting. However, still proceeding..."
-fi
-
-sudo apt-get -qq install --reinstall xserver-xorg-video-intel xserver-xorg-core
-
-BASE_DIR=$(pwd)
-mkdir -p "${BASE_DIR}"/git/neutrinolabs
-cd "${BASE_DIR}"/git/neutrinolabs
-wget --no-verbose https://github.com/neutrinolabs/xrdp/releases/download/v0.9.9/xrdp-0.9.9.tar.gz
-wget --no-verbose https://github.com/neutrinolabs/xorgxrdp/releases/download/v0.2.12/xorgxrdp-0.2.12.tar.gz
-
-cd "${BASE_DIR}"/git/neutrinolabs
-tar xvfz xrdp-0.9.9.tar.gz
-cd "${BASE_DIR}"/git/neutrinolabs/xrdp-0.9.9
-./bootstrap
-./configure --enable-fuse --enable-mp3lame --enable-pixman
-sudo make install
-sudo ln -sf /usr/local/sbin/xrdp /usr/sbin
-sudo ln -sf /usr/local/sbin/xrdp-sesman /usr/sbin
-
-cd "${BASE_DIR}"/git/neutrinolabs
-tar xvfz xorgxrdp-0.2.12.tar.gz
-cd "${BASE_DIR}"/git/neutrinolabs/xorgxrdp-0.2.12
-./bootstrap
-./configure
-make
-sudo make install
-
-cd "${BASE_DIR}"
-sudo rm -rf git
-
-sudo apt-get -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"  autoremove
-
-# Configure the XServer so it can be started by users connecting with remote desktop.
-# Ensure there is an Xwrapper.config file.
-FILE=/etc/X11/Xwrapper.config
-if test -f "$FILE"; then
-  sudo sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/X11/Xwrapper.config
-  echo "Xwrapper.config updated"
+# Robust NVIDIA detection: check for actual files on disk,
+# not just dpkg package names (which vary across repos).
+NVIDIA_PRESENT=false
+if [ -f /lib/x86_64-linux-gnu/libEGL_nvidia.so.0 ] \
+   || [ -f /usr/lib/x86_64-linux-gnu/libEGL_nvidia.so.0 ] \
+   || dpkg -l 2>/dev/null | grep -qi "nvidia-driver\|nvidia-dkms\|libnvidia-gl"; then
+    NVIDIA_PRESENT=true
+    echo "NVIDIA components detected on system."
 else
-  sudo echo "allowed_users=anybody" | sudo tee -a /etc/X11/Xwrapper.config
-  echo "Xwrapper.config created"
+    echo "No NVIDIA components detected."
 fi
 
-# Set default permissions
-sudo chmod -R a+w /var/tmp/config
+# Fix 1: Rebuild xorgxrdp from source (only needed when NVIDIA
+# changes the Xorg ABI, breaking the pre-built .so modules)
+if [ "$NVIDIA_PRESENT" = true ]; then
+    echo "Rebuilding xorgxrdp from source for NVIDIA Xorg ABI compatibility..."
+    sudo apt-get install -qq -y \
+        build-essential pkg-config autoconf automake libtool \
+        xserver-xorg-dev nasm libxfont-dev libxkbfile-dev git
 
-# Fix XRDP icons
-sudo mkdir -p /usr/share/matlab
-sudo cp /var/tmp/config/matlab/icons/matlabicon24b.bmp /usr/share/matlab
+    XORGXRDP_VERSION="v0.9.19"
+    BUILD_DIR=$(mktemp -d)
+    cd "$BUILD_DIR"
+    git clone --branch "${XORGXRDP_VERSION}" --depth 1 https://github.com/neutrinolabs/xorgxrdp.git
+    cd xorgxrdp
+    ./bootstrap
+    ./configure
+    make -j"$(nproc)"
+    sudo make install
+    cd /tmp
+    rm -rf "$BUILD_DIR"
+    echo "xorgxrdp rebuilt successfully (${XORGXRDP_VERSION})"
+fi
 
-# Fix xrdp login screen options
-sudo cp /var/tmp/config/xrdp/xrdp.ini /etc/xrdp/xrdp.ini
-# Fix xrdp bit depth and folder sharing options
-sudo cp /var/tmp/config/xrdp/sesman.ini /etc/xrdp/sesman.ini
+# Fix 2: Disable GLX in xrdp's Xorg config (UNCONDITIONAL)
+# xrdp uses the xrdpdev software framebuffer; GLX is unused
+# and loading it triggers the NVIDIA libEGL segfault.
+XRDP_XORG_CONF="/etc/X11/xrdp/xorg.conf"
+if [ -f "$XRDP_XORG_CONF" ]; then
+    echo "Disabling GLX in xrdp Xorg config..."
+    sudo sed -i 's/^[[:space:]]*Load "glx"/#   Load "glx"/' "$XRDP_XORG_CONF"
+    echo "Commented out Load glx in $XRDP_XORG_CONF"
 
-# Installing NVDIA driver
-sudo apt-get -qq install --no-install-recommends "nvidia-driver-${NVIDIA_DRIVER_VERSION}"
+    if ! grep -q 'Option "GLX" "Disable"' "$XRDP_XORG_CONF"; then
+        echo '' | sudo tee -a "$XRDP_XORG_CONF" > /dev/null
+        echo 'Section "Extensions"' | sudo tee -a "$XRDP_XORG_CONF" > /dev/null
+        echo '    Option "GLX" "Disable"' | sudo tee -a "$XRDP_XORG_CONF" > /dev/null
+        echo 'EndSection' | sudo tee -a "$XRDP_XORG_CONF" > /dev/null
+        echo "Added Extensions section to disable GLX"
+    fi
+fi
 
-sudo cp /var/tmp/config/nvidia/xorg.conf /etc/X11/xorg.conf
+# Fix 3: Set Mesa as default GL provider for software rendering (UNCONDITIONAL)
+MESA_CONF="/usr/lib/x86_64-linux-gnu/mesa/ld.so.conf"
+if [ -f "$MESA_CONF" ]; then
+    echo "Setting Mesa as default GL provider..."
+    sudo update-alternatives --set x86_64-linux-gnu_gl_conf "$MESA_CONF" 2>/dev/null || true
+    sudo ldconfig
+    echo "GL provider set to Mesa"
+fi
 
-# Remove gnome option from the lightdm menu
+######################################################
+# CONFIGURE XRDP FOR MATE
+######################################################
+# 1. Allow any user to start X server
+sudo mkdir -p /etc/X11
+echo "allowed_users=anybody" | sudo tee /etc/X11/Xwrapper.config
+
+# 2. Configure startwm.sh to launch MATE with D-Bus
+echo "Configuring XRDP to use MATE session..."
+sudo cp /etc/xrdp/startwm.sh /etc/xrdp/startwm.sh.bak
+sudo bash -c "cat > /etc/xrdp/startwm.sh" <<'EOF'
+#!/bin/bash
+unset DBUS_SESSION_BUS_ADDRESS
+unset XDG_RUNTIME_DIR
+
+if [ -r /etc/profile ]; then
+    . /etc/profile
+fi
+
+export XDG_SESSION_TYPE=x11
+export DESKTOP_SESSION=mate
+export XDG_CURRENT_DESKTOP=MATE
+
+# Ensure XDG_RUNTIME_DIR exists for the user
+if [ -z "$XDG_RUNTIME_DIR" ]; then
+    XDG_RUNTIME_DIR="/run/user/$(id -u)"
+    export XDG_RUNTIME_DIR
+    mkdir -p "$XDG_RUNTIME_DIR" 2>/dev/null
+    chmod 0700 "$XDG_RUNTIME_DIR" 2>/dev/null
+fi
+
+# Launch MATE session with D-Bus session bus
+if [ -x /usr/bin/mate-session ]; then
+    exec dbus-launch --exit-with-session /usr/bin/mate-session
+fi
+
+exec /bin/sh /etc/X11/Xsession
+EOF
+sudo chmod +x /etc/xrdp/startwm.sh
+
+# 3. Fix SSL Cert permissions
+if getent group ssl-cert > /dev/null; then
+    sudo adduser xrdp ssl-cert
+fi
+
+# 4. Copy custom xRDP configurations (if they exist)
+if [ -d "/var/tmp/config/xrdp" ]; then
+    sudo cp /var/tmp/config/xrdp/xrdp.ini /etc/xrdp/xrdp.ini
+    sudo cp /var/tmp/config/xrdp/sesman.ini /etc/xrdp/sesman.ini
+fi
+
+# 5. Fix Polkit Color Manager Crash
+echo "Configuring Polkit rules for color management..."
+sudo mkdir -p /etc/polkit-1/localauthority/50-local.d/
+sudo bash -c "cat > /etc/polkit-1/localauthority/50-local.d/45-allow-colord.pkla" <<EOF
+[Allow Colord all Users]
+Identity=unix-user:*
+Action=org.freedesktop.color-manager.create-device;org.freedesktop.color-manager.create-profile;org.freedesktop.color-manager.delete-device;org.freedesktop.color-manager.delete-profile;org.freedesktop.color-manager.modify-device;org.freedesktop.color-manager.modify-profile
+ResultAny=no
+ResultInactive=no
+ResultActive=yes
+EOF
+
+######################################################
+# SYSTEM CONFIGURATION
+######################################################
 if [[ -e "/usr/share/xsessions/packer.desktop" ]]; then
     sudo mv /usr/share/xsessions/packer.desktop /usr/share/xsessions/packer.desktop.disabled
 fi
+
 sudo systemctl set-default multi-user.target
-
-sudo sed -i 's/enabled=1/enabled=0/' /etc/default/apport
-
-# Disable ubuntu upgrade notification pop-ups
-sudo sed -i 's/^Prompt=.*/Prompt=never/' /etc/update-manager/release-upgrades
-
-# Disable both services. one will be enabled on boot
 sudo systemctl disable xrdp
 
-# Disable managed color device pop-up
-sudo cp /var/tmp/config/matlab/999-allow-colord.conf /etc/polkit-1/localauthority.conf.d/999-allow-colord.conf
+sudo sed -i 's/enabled=1/enabled=0/' /etc/default/apport 2>/dev/null || true
+sudo sed -i 's/^Prompt=.*/Prompt=never/' /etc/update-manager/release-upgrades 2>/dev/null || true
 
-sudo reboot
+sudo apt-get autoremove -qq -y
+sudo apt-get clean
+
+echo "Ubuntu desktop (XRDP/MATE) configuration completed successfully!"

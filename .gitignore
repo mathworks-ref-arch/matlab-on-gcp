@@ -6,4 +6,5 @@
 *.tfout
 *.lock.hcl
 *.exe
+*msa.ini
 packer/v1/manifest*

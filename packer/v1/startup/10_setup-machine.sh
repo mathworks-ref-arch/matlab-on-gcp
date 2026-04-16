@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2024 The MathWorks, Inc.
+# Copyright 2024-2026 The MathWorks, Inc.
 
 # Print commands for logging purposes.
 set -x
@@ -12,8 +12,11 @@ sed -i 's/^#\?PasswordAuthentication[[:space:]]\+no/PasswordAuthentication yes/'
 # This is needed because of a new change in Ubuntu 22.04+ versions.
 # Solution Reference: https://serverfault.com/a/1118144
 for config_file in /etc/ssh/sshd_config.d/*; do
-    sed -i 's/^#\?PasswordAuthentication[[:space:]]\+no/PasswordAuthentication yes/' "$config_file"
+    # Check if file exists to prevent errors if directory is empty
+    if [ -f "$config_file" ]; then
+        sed -i 's/^#\?PasswordAuthentication[[:space:]]\+no/PasswordAuthentication yes/' "$config_file"
+    fi
 done
 
 # Restart SSH service to apply changes
-systemctl restart sshd
+systemctl restart ssh

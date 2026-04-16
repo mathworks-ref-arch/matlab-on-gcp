@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2024 The MathWorks, Inc.
+# Copyright 2024-2026 The MathWorks, Inc.
 
 # Exit on any failure, treat unset substitution variables as errors
 set -euo pipefail
@@ -18,15 +18,12 @@ cd /tmp
 # Install pip
 sudo apt-get -qq install python3-pip
 
-# Install NVIDIA CUDA Toolkit
-if [[ -n "${NVIDIA_CUDA_TOOLKIT}" ]]; then
-  wget --no-verbose "${NVIDIA_CUDA_TOOLKIT}"
-  chmod +x cuda*.run
-  sudo bash cuda*.run --silent --override --toolkit --samples --toolkitpath=/usr/local/cuda-toolkit --samplespath=/usr/local/cuda --no-opengl-libs
-  sudo ln -s /usr/local/cuda-toolkit /usr/local/cuda
-  echo "export PATH=\"$PATH:/usr/local/cuda-toolkit/bin\"" >> set_cuda_on_path.sh
-  sudo cp set_cuda_on_path.sh /etc/profile.d/
-  rm cuda*.run
+# Install nvidia-driver
+if [[ -n "${NVIDIA_DRIVER_VERSION}" ]]; then
+  wget -O cuda-keyring.deb ${NVIDIA_CUDA_KEYRING_URL}
+  sudo dpkg -i cuda-keyring.deb
+  sudo apt-get update
+  sudo apt-get -y -qq install --no-install-recommends "nvidia-driver-${NVIDIA_DRIVER_VERSION}-server"
 fi
 
 # Install Firefox to ensure a web browser is available

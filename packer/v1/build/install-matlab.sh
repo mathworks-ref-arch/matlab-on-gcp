@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2024 The MathWorks, Inc.
+# Copyright 2024-2026 The MathWorks, Inc.
 
 # Exit on any failure, treat unset substitution variables as errors
 set -euo pipefail
@@ -28,6 +28,7 @@ sudo apt-get -qq install \
   unzip \
   wget \
   ca-certificates
+
 sudo wget --no-verbose https://www.mathworks.com/mpm/glnxa64/mpm
 sudo chmod +x mpm
 
@@ -42,21 +43,34 @@ fi
 # If a source URL is provided, then use it to install MATLAB and toolboxes.
 release_arguments=""
 source_arguments=""
+
 if [ -n "${MATLAB_SOURCE_URL}" ]; then
-    curl "${MATLAB_SOURCE_URL}" -o matlab.zip
+    echo "Checking disk space before download..."
+    df -h
+    echo "Downloading MATLAB source from ${MATLAB_SOURCE_URL}..."
+    curl -fL "${MATLAB_SOURCE_URL}" -o matlab.zip
+    
     echo "Download Completed. Unzipping MATLAB source archive..."
     unzip -q matlab.zip -d /tmp/matlab_source
+    
     rm matlab.zip
     chmod -R 755 /tmp/matlab_source
-    source_arguments="--source=/tmp/matlab_source/dvd/archives"
+    
+    # Source directory must contain an archives folder that mpm uses for installing products
+    archives_path=$(find /tmp/matlab_source -type d -name "archives" -print -quit)
+    
+    source_arguments="--source=${archives_path}"
+    echo "Source argument for MPM set to ${source_arguments}"
 else
     release_arguments="--release=${RELEASE}"
+    echo "Release argument for MPM set to ${release_arguments}"
 fi
 
 # Run mpm to install MATLAB and toolboxes in the PRODUCTS variable
 # into the target location. The mpm installation is deleted afterwards.
 # The PRODUCTS variable should be a space separated list of products, with no surrounding quotes.
 # Use quotes around the destination argument if it contains spaces.
+echo "Starting MPM installation..."
 sudo ./mpm install \
   ${doc_flag} \
   ${release_arguments} \
@@ -89,7 +103,6 @@ sudo ./ddux_settings -s -c
 
 # Config license setting
 sudo cp /var/tmp/config/matlab/mlm_def.sh /etc/profile.d/
-
 sudo mkdir -p "${MATLAB_ROOT}/licenses"
 sudo chmod 777 "${MATLAB_ROOT}/licenses"
 
@@ -101,3 +114,5 @@ sudo cp /var/tmp/config/matlab/mw_context_tag.sh /etc/profile.d/
 
 # Copy license file to root of the image
 sudo cp /var/tmp/config/matlab/thirdpartylicenses.txt /
+
+echo "✓ MATLAB installation completed successfully"

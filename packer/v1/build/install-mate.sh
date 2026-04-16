@@ -1,97 +1,126 @@
 #!/usr/bin/env bash
 #
-# Copyright 2024 The MathWorks, Inc.
+# Copyright 2024-2026 The MathWorks, Inc.
 
 # Exit on any failure, treat unset substitution variables as errors
 set -euo pipefail
 
-# Function to check for dpkg lock
-wait_for_dpkg_lock() {
-    local wait_time=0
-    local max_wait=600   # Maximum wait time in seconds (e.g., 10 minutes)
-    local interval=10    # Interval to check the lock status
+echo "Installing MATE Desktop Environment..."
 
-    echo "Checking for dpkg lock..."
+# Configure non-interactive mode
+export DEBIAN_FRONTEND=noninteractive
 
-    while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
-        echo "Waiting for other software managers to finish..."
-        sleep $interval
-        wait_time=$((wait_time + interval))
+####################################################
+# INSTALL MATE DESKTOP
+#####################################################
 
-        if [ "$wait_time" -ge "$max_wait" ]; then
-            echo "Timed out waiting for dpkg lock."
-            return 1
-        fi
-    done
+echo "Installing MATE desktop packages..."
+sudo apt-get update -qq
+sudo apt-get install -qq -y \
+  mate-desktop-environment \
+  mate-session-manager \
+  dconf-cli \
+  dkms
 
-    echo "dpkg lock is free."
-    return 0
-}
+# Run DKMS autoinstall (for hardware drivers like NVIDIA)
+echo "Running DKMS autoinstall..."
+sudo dkms autoinstall || true
 
-# Configure MATE
-sudo apt-get -qq install dkms
-sudo dkms autoinstall
+# Set MATE as default session manager
+echo "Configuring MATE as default session..."
+sudo update-alternatives --install /usr/bin/x-session-manager x-session-manager /usr/bin/mate-session 1500
+sudo update-alternatives --set x-session-manager /usr/bin/mate-session
 
-# Wait for dpkg lock to be free before proceeding
-if ! wait_for_dpkg_lock; then
-    echo "Failed to acquire dpkg lock after waiting. However, still proceeding..."
-fi
+#####################################################
+# CONFIGURE MATE THEME AND LAYOUT
+#####################################################
 
-# Configure the MATE theme and panel layout (aka desktop layout)
-# https://lauri.xn--vsandi-pxa.com/2015/03/dconf.html
-sudo apt-get -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install dconf-cli
+echo "Configuring MATE theme and panel layout..."
+
+# Configure dconf profile
 sudo mkdir -p /etc/dconf/profile
-sudo cp -f /var/tmp/config/mate/user /etc/dconf/profile
+sudo cp -f /var/tmp/config/mate/user /etc/dconf/profile/
 
+# Configure MATE settings via dconf
 sudo mkdir -p /etc/dconf/db/site.d
-sudo cp -f /var/tmp/config/mate/panel /etc/dconf/db/site.d
-sudo cp -f /var/tmp/config/mate/theme /etc/dconf/db/site.d
+sudo cp -f /var/tmp/config/mate/panel /etc/dconf/db/site.d/
+sudo cp -f /var/tmp/config/mate/theme /etc/dconf/db/site.d/
+
+# Update dconf database
 sudo rm -f /etc/dconf/db/site
 sudo dconf update
 
-# Configure the MATE default menus for all users
-# https://developer.gnome.org/menu-spec/
-sudo cp -f /var/tmp/config/mate/mate-applications.menu /etc/xdg/menus
+#####################################################
+# CONFIGURE MATE MENUS
+#####################################################
+
+echo "Configuring MATE application menus..."
+
+# Configure MATE menus
+sudo cp -f /var/tmp/config/mate/mate-applications.menu /etc/xdg/menus/
+
+# Install desktop files
 sudo mkdir -p /usr/share/applications
-# See https://help.ubuntu.com/community/UnityLaunchersAndDesktopFiles
-sudo cp -f /var/tmp/config/desktop/*.desktop /usr/share/applications
+sudo cp -f /var/tmp/config/desktop/*.desktop /usr/share/applications/
+
+# Install MATE directory definitions
 sudo mkdir -p /usr/share/mate/desktop-directories
-sudo cp -f /var/tmp/config/mate/mate-matlab.directory /usr/share/mate/desktop-directories
+sudo cp -f /var/tmp/config/mate/mate-matlab.directory /usr/share/mate/desktop-directories/
+
+#####################################################
+# CONFIGURE USER DIRECTORIES
+#####################################################
+
+echo "Configuring default user directories..."
+
+# Set default user directories
+sudo cp -f /var/tmp/config/mate/user-dirs.defaults /etc/xdg/user-dirs.defaults
+
+# Create directories for packer user
+sudo -u packer bash -c 'xdg-user-dirs-update'
+
+#####################################################
+# CONFIGURE MATLAB DESKTOP ICON
+#####################################################
+
+echo "Installing MATLAB desktop icon..."
+
+# Create skeleton desktop directory
 sudo mkdir -p /etc/skel/Desktop
 
-# Create basic directories
-sudo cp /var/tmp/config/mate/user-dirs.defaults /etc/xdg/user-dirs.defaults
-sudo -u packer bash -c xdg-user-dirs-update
-
-# Configure MATLAB icon on desktop
-sudo cp -f /var/tmp/config/desktop/matlab.desktop /etc/skel/Desktop
+# Install MATLAB desktop launcher
+sudo cp -f /var/tmp/config/desktop/matlab.desktop /etc/skel/Desktop/
 sudo chmod a+x /etc/skel/Desktop/matlab.desktop
-sudo sed -Ei "s/Name=MATLAB/Name=MATLAB $RELEASE/" /etc/skel/Desktop/matlab.desktop
+sudo sed -Ei "s/Name=MATLAB/Name=MATLAB ${RELEASE:-}/" /etc/skel/Desktop/matlab.desktop
+
+# Configure for packer user
 sudo mkdir -p /home/packer/Desktop
 sudo cp -f /etc/skel/Desktop/matlab.desktop /home/packer/Desktop/
 sudo sed -i '/\[Desktop Entry\]/a Trusted=true' /home/packer/Desktop/matlab.desktop
+sudo chown -R packer:packer /home/packer/Desktop
 
-# Configure the MATLAB icon
+#####################################################
+# INSTALL MATLAB ICONS
+#####################################################
+
+echo "Installing MATLAB icons..."
+
+# Copy MATLAB icons
 sudo mkdir -p /usr/share/matlab
-sudo cp -f /var/tmp/config/matlab/icons/matlab32.png /usr/share/matlab
-sudo cp -f /var/tmp/config/matlab/icons/matlab64.png /usr/share/matlab
+sudo cp -f /var/tmp/config/matlab/icons/matlab32.png /usr/share/matlab/
+sudo cp -f /var/tmp/config/matlab/icons/matlab64.png /usr/share/matlab/
+
+# Create icon symlinks
+sudo mkdir -p /usr/share/icons/hicolor/{32x32,64x64,128x128}/apps
 sudo ln -sf /usr/share/matlab/matlab32.png /usr/share/icons/hicolor/32x32/apps/matlab.png
 sudo ln -sf /usr/share/matlab/matlab64.png /usr/share/icons/hicolor/64x64/apps/matlab.png
 sudo ln -sf /usr/share/matlab/matlab64.png /usr/share/icons/hicolor/128x128/apps/matlab.png
 
-# Refresh the icon cache
-sudo apt-get -qq install gtk-update-icon-cache
-sudo update-icon-caches /usr/share/icons/*
+# Update icon cache
+echo "Updating icon cache..."
+sudo gtk-update-icon-cache -f /usr/share/icons/hicolor/ 2>/dev/null || true
+
+# Final dconf update
 sudo dconf update
 
-# Sleep for 1 minute to let any pending process complete
-sleep 60
-
-# Install MATE Desktop Environment
-sudo apt-get -qq install mate-desktop-environment mate-session-manager
-
-# Register mate-session with update-alternatives
-sudo update-alternatives --install /usr/bin/x-session-manager x-session-manager /usr/bin/mate-session 1500
-
-# Now set mate-session as the default x-session-manager
-sudo update-alternatives --set x-session-manager /usr/bin/mate-session
+echo "MATE desktop installation completed successfully!"

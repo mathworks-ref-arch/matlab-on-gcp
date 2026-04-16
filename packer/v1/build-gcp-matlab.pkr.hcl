@@ -1,4 +1,4 @@
-# Copyright 2024-2025 The MathWorks, Inc.
+# Copyright 2024-2026 The MathWorks, Inc.
 
 packer {
   required_plugins {
@@ -76,8 +76,8 @@ variable "BUILD_SCRIPTS" {
   default     = [
     "install-startup-scripts.sh",
     "install-dependencies.sh",
-    "install-ubuntu-desktop.sh",
     "install-mate.sh",
+    "install-ubuntu-desktop.sh",    
     "install-matlab-dependencies-ubuntu.sh",
     "install-matlab.sh",
     "setup-startup-accelerator.sh",
@@ -104,16 +104,16 @@ variable "RUNTIME_SCRIPTS" {
   description = "The list of runtime scripts Packer copies to the remote machine image builder, which can be used after the CloudFormation Stack creation."
 }
 
-variable "NVIDIA_DRIVER_VERSION" {
+variable "NVIDIA_CUDA_KEYRING_URL" {
   type        = string
-  default     = "535"
-  description = "The version of target NVIDIA driver to install."
+  default     = "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb"
+  description = "The nvidia cuda keyring url for ubuntu 24.04."
 }
 
-variable "NVIDIA_CUDA_TOOLKIT" {
+variable "NVIDIA_DRIVER_VERSION" {
   type        = string
-  default     = "https://developer.download.nvidia.com/compute/cuda/12.2.2/local_installers/cuda_12.2.2_535.104.05_linux.run"
-  description = "The URL to the NVIDIA CUDA Toolkit to install in the target machine image. "
+  default     = "590"
+  description = "The version of target NVIDIA driver to install."
 }
 
 variable "VM_LABELS" {
@@ -150,7 +150,13 @@ variable "MATLAB_SOURCE_URL" {
 variable "DEPS_LIST" {
   type    = string
   default = ""
-  description = "Optional URL of latest matlab dependencies to install. See here https://github.com/mathworks-ref-arch/container-images/tree/main/matlab-deps"
+  description = "Optional URL or a space/newline-separated list of latest matlab dependencies to install. Overrides the list set in install-matlab-dependencies-ubuntu.sh. See here https://github.com/mathworks-ref-arch/container-images/tree/main/matlab-deps"
+}
+
+variable "MSA_URL" {
+  type        = string
+  description = "URL pointing to a valid MATLAB Startup Accelerator file. If left unset, a default URL will be constructed based on the RELEASE variable."
+  default     = null
 }
 
 
@@ -172,6 +178,10 @@ locals {
                               { "matlab-release" = lower(var.RELEASE) },
                               { "os" = var.BASE_IMAGE_FAMILY }
                             )
+  # This local variable decides which URL to use.
+  # If var.MSA_URL is not null (meaning the user provided an override), use that value.
+  # Otherwise, construct the URL using var.RELEASE.
+  effective_msa_url = var.MSA_URL != null ? var.MSA_URL : "https://raw.githubusercontent.com/mathworks-ref-arch/iac-building-blocks/refs/heads/main/common/artifacts/msa/${var.RELEASE}/Linux/msa.ini"
 }
 
 # Virtual Machine configuration that is used to build the machine image.
@@ -226,19 +236,31 @@ build {
     sources     = "${local.runtime_scripts}"
   }
 
+  # Install everything in one go
   provisioner "shell" {
     environment_vars = [
       "RELEASE=${var.RELEASE}",
       "PRODUCTS=${var.PRODUCTS}",
       "NVIDIA_DRIVER_VERSION=${var.NVIDIA_DRIVER_VERSION}",
-      "NVIDIA_CUDA_TOOLKIT=${var.NVIDIA_CUDA_TOOLKIT}",
+      "NVIDIA_CUDA_KEYRING_URL=${var.NVIDIA_CUDA_KEYRING_URL}",
       "MATLAB_SOURCE_URL=${var.MATLAB_SOURCE_URL}",
       "DEPS_LIST=${var.DEPS_LIST}",
+      "MSA_URL=${local.effective_msa_url}",
       "MATLAB_ROOT=/usr/local/matlab"
     ]
     expect_disconnect = true
     scripts           = "${local.build_scripts}"
   }
+
+  # Final Reboot
+  provisioner "shell" {
+    expect_disconnect = true
+    inline = [
+      "echo 'Finalizing installation and rebooting...'",
+      "sudo reboot"
+    ]
+  }
+
 
   post-processor "manifest" {
     output     = "${var.MANIFEST_OUTPUT_FILE}"

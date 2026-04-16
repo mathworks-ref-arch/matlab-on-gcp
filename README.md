@@ -23,10 +23,9 @@ A HashiCorp® Packer template generates the machine image. The template is an HC
 
 * A MATLAB license. For details, see [License Requirements for MATLAB on Cloud Platforms](https://www.mathworks.com/help/install/license/licensing-for-mathworks-products-running-on-the-cloud.html).
 * [Google Cloud CLI](https://cloud.google.com/sdk/docs/install). To log in, use: `gcloud auth application-default login`
-* [Google Cloud CLI](https://cloud.google.com/sdk/docs/install). To log in, use: `gcloud auth application-default login`
 * [Google Cloud "Project ID"](https://cloud.google.com/resource-manager/docs/creating-managing-projects#before_you_begin). To retrieve your Project ID, use: `gcloud config get-value project`
-* [Packer 1.7.0. or later](https://www.packer.io/downloads).
-* [Terraform 1.6.6 or later](https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/install-cli).
+* [Packer 1.15.0. or later](https://www.packer.io/downloads).
+* [Terraform 1.14.0 or later](https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/install-cli).
 
 ## **Costs**
 You are responsible for the cost of the GCP services used when you create cloud resources using this guide. Resource settings, such as virtual machine type, affect the cost of deployment. For cost estimates, see the pricing pages for each GCP service you will be using. Prices are subject to change.
@@ -93,15 +92,15 @@ packer build -var "PRODUCTS=MATLAB Deep_Learning_Toolbox" build-gcp-matlab.pkr.h
 
 #### **Customize MATLAB Release to Install**
 To use an earlier MATLAB release, use one of the variable definition files in the [release-config](https://github.com/mathworks-ref-arch/matlab-on-gcp/tree/master/packer/v1/release-config) folder.
-These are available for MATLAB R2023a and later.
+These are available for MATLAB R2024a and later.
 
-For example, to install MATLAB R2023b and all available toolboxes, run:
+For example, to install MATLAB R2025b and all available toolboxes, run:
 ```bash
-packer build -var-file="variables.auto.pkrvars.hcl" -var-file="release-config/R2023b.pkrvars.hcl" build-gcp-matlab.pkr.hcl
+packer build -var-file="variables.auto.pkrvars.hcl" -var-file="release-config/R2025b.pkrvars.hcl" build-gcp-matlab.pkr.hcl
 ```
-You can also combine command line variables. For example, to install MATLAB R2023b and only the Parallel Computing Toolbox, run:
+You can also combine command line variables. For example, to install MATLAB R2025b and only the Parallel Computing Toolbox, run:
 ```bash
-packer build -var-file="variables.auto.pkrvars.hcl" -var-file="release-config/R2023b.pkrvars.hcl" -var="PRODUCTS=MATLAB Parallel_Computing_Toolbox" build-gcp-matlab.pkr.hcl
+packer build -var-file="variables.auto.pkrvars.hcl" -var-file="release-config/R2025b.pkrvars.hcl" -var="PRODUCTS=MATLAB Parallel_Computing_Toolbox" build-gcp-matlab.pkr.hcl
 ```
 Launch the customized image using the corresponding Terraform Template.
 For instructions using Terraform Templates, see the Deployment Steps
@@ -271,6 +270,6 @@ To request assistance, or additional features, contact [MathWorks Technical Supp
 
 ----
 
-Copyright 2024-2025 The MathWorks, Inc.
+Copyright 2024-2026 The MathWorks, Inc.
 
 ----
