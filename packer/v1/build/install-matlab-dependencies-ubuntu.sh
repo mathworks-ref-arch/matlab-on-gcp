@@ -9,7 +9,7 @@ cd /tmp
 
 MATLAB_RELEASE_LOWER=$(echo "${RELEASE}" | awk '{print tolower($0)}')
 UBUNTU_VERSION=$(lsb_release -rs)
-DEFAULT_URL="https://raw.githubusercontent.com/mathworks-ref-arch/container-images/main/matlab-deps/${MATLAB_RELEASE_LOWER}/ubuntu${UBUNTU_VERSION}/base-dependencies.txt"
+DEFAULT_URL="https://raw.githubusercontent.com/mathworks-ref-arch/container-images/main/matlab-deps/${MATLAB_RELEASE_LOWER}/ubuntu${UBUNTU_VERSION}/base-dependencies-amd64.txt"
 
 # Use provided DEPS_LIST or fallback to default URL
 SOURCE="${DEPS_LIST:-$DEFAULT_URL}"

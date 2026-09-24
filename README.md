@@ -72,7 +72,7 @@ supports these build-time variables:
 | Variable Name | Default Value | Description |
 |---|---|---|
 | [`PRODUCTS`](#customize-products-to-install)| MATLAB and all available toolboxes | Products to install, specified as a list of product names separated by spaces. For example, `MATLAB Simulink Deep_Learning_Toolbox Parallel_Computing_Toolbox`.<br/>If no products are specified, the Packer build will install MATLAB with all available toolboxes. For more information, see [MATLAB Package Manager](https://github.com/mathworks-ref-arch/matlab-dockerfile/blob/main/MPM.md).|
-| `BASE_IMAGE_FAMILY` |  ubuntu-2204-lts | The base image OS family. |
+| `BASE_IMAGE_FAMILY` |  ubuntu-2404-lts-amd64 | The base image OS family. |
 | `VM_LABELS` |{name="packer-builder", build="matlab-linux"} | Tags to add to the Packer build instance.|
 | `IMAGE_LABELS` | {name="packer-build", build="matlab", type="matlab-on-gcp"} | Tags to add to the machine image.|
 
